@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Free FAQ Accordion Generator with Schema Markup | Pierre Cochart</title>
+    <meta name="description" content="Quickly create stylised FAQ accordions with integrated JSON-LD Schema. Perfect for WordPress, Shopify, and custom sites. SEO-friendly and fully customisable.">
+    <link rel="canonical" href="https://pierrecochart.github.io/faq-generator/">
+
+    <style>
+        /* --- Core Variables --- */
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --sidebar-width: 300px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-dark);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* --- Layout --- */
+        .app-wrapper {
+            display: flex;
+            gap: 2.5rem;
+            max-width: 1200px;
+            width: 100%;
+            padding: 3rem 2rem;
+            align-items: flex-start;
+        }
+
+        /* --- Sticky Sidebar --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            position: sticky;
+            top: 3rem;
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            flex-shrink: 0;
+        }
+
+        .sidebar h2 { font-size: 1.25rem; margin-top: 0; margin-bottom: 1rem; }
+        .instructions { padding-left: 1.25rem; margin: 0; font-size: 0.95rem; color: var(--text-muted); }
+        .instructions li { margin-bottom: 0.75rem; }
+
+        /* Buy Me A Coffee Styling */
+        .coffee-container {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+        .bmc-btn {
+            display: inline-flex;
+            align-items: center;
+            background-color: #FFDD00;
+            color: #000000;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.2s ease;
+            box-shadow: 0 4px 0px #c7ad00;
+        }
+        .bmc-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 0px #c7ad00; }
+        .bmc-btn:active { transform: translateY(0px); box-shadow: 0 2px 0px #c7ad00; }
+
+        /* --- Main Content Area --- */
+        .main-content {
+            flex-grow: 1;
+            background: var(--surface);
+            padding: 2.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        }
+
+        header { margin-bottom: 2.5rem; }
+        h1 { font-size: 2.25rem; margin: 0; letter-spacing: -0.02em; }
+        .subtitle { color: var(--text-muted); font-size: 1.1rem; margin-top: 0.5rem; }
+
+        /* FAQ Row Inputs */
+        .faq-row {
+            background: #f1f5f9;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+        .row-label { display: block; font-weight: bold; font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+        
+        input[type="text"], textarea, select {
+            width: 100%; padding: 0.8rem; border-radius: 8px; border: 1px solid #cbd5e1;
+            font-family: inherit; font-size: 1rem; box-sizing: border-box; margin-bottom: 1rem;
+        }
+
+        .btn-add { width: 100%; background: #fff; border: 2px dashed #cbd5e1; color: var(--text-muted); padding: 1rem; font-weight: bold; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        .btn-add:hover { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+        .btn-remove { position: absolute; top: 1rem; right: 1rem; color: #ef4444; background: none; border: none; cursor: pointer; font-size: 0.85rem; }
+
+        /* Controls */
+        .config-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 1.5rem; margin: 2rem 0; }
+        .btn-generate { width: 100%; background: var(--primary); color: #fff; padding: 1.2rem; font-size: 1.1rem; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .btn-generate:hover { background: var(--primary-hover); }
+
+        #custom-panel { display: none; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; border-top: 1px solid #bfdbfe; padding-top: 1rem; }
+        #custom-panel.visible { display: grid; }
+
+        /* Output & Tabs */
+        .output-container { display: none; margin-top: 3rem; }
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+        .tab-trigger { padding: 0.75rem 1.5rem; border: none; background: none; cursor: pointer; color: var(--text-muted); font-weight: bold; }
+        .tab-trigger.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+        
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        
+        textarea.code-display { width: 100%; height: 350px; background: #1e293b; color: #f1f5f9; padding: 1.5rem; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 0.9rem; line-height: 1.5; resize: none; border: none; }
+        #preview-area { border: 1px solid var(--border); border-radius: 10px; padding: 2rem; background: #fff; }
+
+        @media (max-width: 950px) {
+            .app-wrapper { flex-direction: column; }
+            .sidebar { width: 100%; position: static; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+    <aside class="sidebar">
+        <h2>How to use</h2>
+        <ol class="instructions">
+            <li><strong>Input:</strong> Enter your Question and Answer text into the boxes.</li>
+            <li><strong>Add more:</strong> Use the "Add Question" button for multiple items.</li>
+            <li><strong>Style:</strong> Select a preset theme or choose "Custom" for external CSS control.</li>
+            <li><strong>Generate:</strong> Click to build your HTML and SEO Schema.</li>
+            <li><strong>Copy:</strong> Switch to "Code View" and paste the result into your site.</li>
+        </ol>
+
+        <div class="coffee-container">
+            <a href="https://www.buymeacoffee.com/pierrecochart" target="_blank" class="bmc-btn">
+                <span style="margin-right:8px;">☕</span> Buy me a coffee
+            </a>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">If this tool saved you time!</p>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header>
+            <h1>FAQ Accordion Generator</h1>
+            <p class="subtitle">Beautiful HTML accordions with automatic JSON-LD Schema markup.</p>
+        </header>
+
+        <div id="faq-list">
+            <div class="faq-row">
+                <button class="btn-remove" onclick="this.parentElement.remove()">✕ Remove</button>
+                <label class="row-label">Question</label>
+                <input type="text" class="faq-q" placeholder="e.g. What are your opening hours?">
+                <label class="row-label">Answer</label>
+                <textarea class="faq-a" placeholder="e.g. We are open from 9am to 5pm, Monday to Friday."></textarea>
+            </div>
+        </div>
+
+        <button class="btn-add" onclick="addNewRow()">+ Add Another Question</button>
+
+        <div class="config-box">
+            <label class="row-label">Accordion Style Theme</label>
+            <select id="theme-select" onchange="toggleCustomSettings()">
+                <option value="minimal">Minimal (Clean Grey)</option>
+                <option value="corporate">Corporate (Blue Header)</option>
+                <option value="dark">Dark Theme (Amber Accent)</option>
+                <option value="custom">Custom (Advanced Classes & External CSS)</option>
+            </select>
+
+            <div id="custom-panel">
+                <div style="grid-column: 1 / -1;"><p style="font-size: 0.85rem; margin: 0 0 10px 0;">Custom classes will exclude the &lt;style&gt; block from your HTML.</p></div>
+                <div><label class="row-label">Container Class</label><input type="text" id="cust-con" value="faq-container"></div>
+                <div><label class="row-label">Item Class</label><input type="text" id="cust-item" value="faq-item"></div>
+                <div><label class="row-label">Question Class</label><input type="text" id="cust-q" value="faq-question"></div>
+                <div><label class="row-label">Answer Class</label><input type="text" id="cust-a" value="faq-answer"></div>
+                <div style="grid-column: 1 / -1;">
+                    <label class="row-label">Staging CSS (Testing only)</label>
+                    <textarea id="staging-css" style="height: 100px; font-family: monospace;"></textarea>
+                </div>
+            </div>
+
+            <button class="btn-generate" onclick="generateFAQ()">Generate My FAQ Accordion</button>
+        </div>
+
+        <section class="output-container" id="results">
+            <div class="tabs">
+                <button class="tab-trigger active" onclick="showTab('code', this)">Code View</button>
+                <button class="tab-trigger" onclick="showTab('preview', this)">Live Preview</button>
+            </div>
+
+            <div id="pane-code" class="tab-pane active">
+                <label class="row-label">Ready-to-use HTML & Schema</label>
+                <textarea id="code-output" class="code-display" readonly></textarea>
+                <button onclick="copyCode()" style="margin-top:10px; padding: 10px; cursor:pointer;">Copy Code</button>
+            </div>
+
+            <div id="pane-preview" class="tab-pane">
+                <div id="preview-area"></div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    const THEMES = {
+        minimal: `.faq-container { font-family: sans-serif; } .faq-item { border-bottom: 1px solid #e2e8f0; } .faq-question { padding: 18px 0; cursor: pointer; font-weight: 600; list-style: none; position: relative; } .faq-question::after { content: '+'; position: absolute; right: 0; font-size: 1.4rem; color: #94a3b8; } details[open] .faq-question::after { content: '−'; } .faq-answer { padding-bottom: 20px; color: #475569; line-height: 1.6; }`,
+        corporate: `.faq-container { font-family: sans-serif; } .faq-item { border: 1px solid #bfdbfe; border-radius: 10px; margin-bottom: 12px; overflow: hidden; } .faq-question { padding: 16px 20px; cursor: pointer; font-weight: 600; background: #eff6ff; color: #1e40af; list-style: none; position: relative; } .faq-question::after { content: '▼'; position: absolute; right: 20px; font-size: 0.7rem; transition: 0.2s; } details[open] .faq-question::after { transform: rotate(180deg); } .faq-answer { padding: 20px; color: #334155; line-height: 1.6; background: #fff; }`,
+        dark: `.faq-container { background: #171717; padding: 30px; border-radius: 12px; font-family: sans-serif; } .faq-item { background: #262626; border: 1px solid #404040; margin-bottom: 10px; border-radius: 8px; } .faq-question { padding: 16px 20px; cursor: pointer; font-weight: 600; color: #fbbf24; list-style: none; position: relative; } .faq-question::after { content: '+'; position: absolute; right: 20px; } details[open] .faq-question::after { content: '-'; } .faq-answer { padding: 16px 20px; color: #d4d4d4; border-top: 1px solid #404040; line-height: 1.6; }`
+    };
+
+    function addNewRow() {
+        const div = document.createElement('div');
+        div.className = 'faq-row';
+        div.innerHTML = `<button class="btn-remove" onclick="this.parentElement.remove()">✕ Remove</button><label class="row-label">Question</label><input type="text" class="faq-q" placeholder="Question text..."><label class="row-label">Answer</label><textarea class="faq-a" placeholder="Answer text..."></textarea>`;
+        document.getElementById('faq-list').appendChild(div);
+    }
+
+    function toggleCustomSettings() {
+        const isCustom = document.getElementById('theme-select').value === 'custom';
+        document.getElementById('custom-panel').classList.toggle('visible', isCustom);
+    }
+
+    function generateFAQ() {
+        const qInputs = document.querySelectorAll('#faq-list .faq-q');
+        const aInputs = document.querySelectorAll('#faq-list .faq-a');
+        const theme = document.getElementById('theme-select').value;
+        
+        let cls = { con: 'faq-container', item: 'faq-item', q: 'faq-question', a: 'faq-answer' };
+        if (theme === 'custom') {
+            cls.con = document.getElementById('cust-con').value;
+            cls.item = document.getElementById('cust-item').value;
+            cls.q = document.getElementById('cust-q').value;
+            cls.a = document.getElementById('cust-a').value;
+        }
+
+        let htmlRows = '';
+        let schemaArr = [];
+
+        qInputs.forEach((qIn, i) => {
+            const q = qIn.value.trim();
+            const a = aInputs[i].value.trim();
+            if (q && a) {
+                htmlRows += `\n  <details class="${cls.item}">\n    <summary class="${cls.q}">${q.replace(/"/g, '&quot;')}</summary>\n    <div class="${cls.a}">${a}</div>\n  </details>`;
+                schemaArr.push({"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}});
+            }
+        });
+
+        if (!schemaArr.length) return alert("Please fill in at least one FAQ.");
+
+        const schemaJSON = `<script type="application/ld+json">\n${JSON.stringify({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": schemaArr}, null, 2)}\n<\/script>`;
+        const cssBlock = theme === 'custom' ? '' : `<style>\n${THEMES[theme]}\n</style>\n`;
+        const previewCss = theme === 'custom' ? document.getElementById('staging-css').value : THEMES[theme];
+
+        const finalCode = `${cssBlock}<div class="${cls.con}">${htmlRows}\n</div>\n\n${schemaJSON}`;
+        
+        document.getElementById('code-output').value = finalCode;
+        document.getElementById('preview-area').innerHTML = `<style>${previewCss}</style><div class="${cls.con}">${htmlRows}</div>`;
+        document.getElementById('results').style.display = 'block';
+    }
+
+    function showTab(type, btn) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+        document.getElementById('pane-' + type).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function copyCode() {
+        const area = document.getElementById('code-output');
+        area.select();
+        document.execCommand('copy');
+        alert("Code copied to clipboard!");
+    }
+</script>
+
+</body>
+</html>
